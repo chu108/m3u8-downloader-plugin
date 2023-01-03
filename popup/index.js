@@ -32,8 +32,9 @@ document.addEventListener("DOMContentLoaded", function () {
 			e.preventDefault();
 			e.stopPropagation();
 
-			console.log("e:", e);
-			
+			let include = ["download-show"]
+			if (!include.includes(e.target.id)) downLoopClear();
+
 			for(var x in _showIds){
 				if(this.id == _showIds[x][0].id){
 					__addClass(_showIds[x][0].parentElement, "active");
@@ -49,8 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		
 	})();
 
-
-	//monitor
+	//monitor - 监控 ----------------------------------------------------------------
 	(function(){
 		//初始化刷新
 		loadMonitoredMedia();
@@ -63,7 +63,6 @@ document.addEventListener("DOMContentLoaded", function () {
 			e.stopPropagation();
 			cleanMonitoredMedia();
 		};
-
 
 		function cleanMonitoredMedia(){
 			chrome.runtime.sendMessage({
@@ -81,7 +80,8 @@ document.addEventListener("DOMContentLoaded", function () {
 				action: "loadmonitoredmedia"
 			}, function(response){
 				var data = response;
-
+				console.log("response:", response)
+				console.log("href:", window.location.href)
 				contentDom.innerHTML = "";
                 let dataCount = 0;
                 let monitorFilter = document.getElementById("monitor-filter");
@@ -103,9 +103,9 @@ document.addEventListener("DOMContentLoaded", function () {
 					var dom = document.createElement("div");
 					var html = (
 						'<hr/>' +
-						'<input type="text" data-place="inputFileName" id="' + nameId + '" style="width: 118px;" value="'+obj.url.split("/").pop()+'" />' +
+						// '<input type="text" data-place="inputFileName" id="' + nameId + '" style="width: 110px;" value="'+obj.url.split("/").pop()+'" />' +
+						'<input type="text" data-place="inputFileName" id="' + nameId + '" style="width: 98%;" value="'+obj.tabItem.title+'" />' +
 						( obj.duration ? '<span class="badge" data-title="duration">' + MyUtils.formatHms(obj.duration) + '</span>' : '' ) +
-						( obj.length ? '<span class="badge">' + obj.length + '</span>' : '' ) +
 						'<span class="badge">' + obj.mediaType + '</span>'
 					);
 					dom.innerHTML = html;
@@ -193,7 +193,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		function downloadMonitoredMedia(e){
 			e.stopPropagation();
             var identifier = this.dataset["identifier"];
-			
+			console.log("dataset:", this.dataset);
             let urlMaster = null, destroy = true, isDirect = false;
             if(this.dataset["playlistId"]){
                 let spl = document.getElementById(this.dataset["playlistId"]);
@@ -204,17 +204,18 @@ document.addEventListener("DOMContentLoaded", function () {
             
             var mediaName = document.getElementById(this.dataset["nameId"]).value.trim();
 			mediaName = mediaName || MyUtils.getLastPathName( urlMaster || this.dataset["url"] ) || MyUtils.genRandomString();
-			
-            
+			console.log("mediaName:", mediaName);
+			let data = {
+				identifier: identifier,
+				destroy: destroy,
+				urlMaster: urlMaster,
+				isDirect: isDirect,
+				mediaName: MyUtils.escapeFileName(mediaName)
+			}
+			console.log("data:", data);
 			chrome.runtime.sendMessage({
 				action: "downloadmonitoredmedia",
-				data: {
-                    identifier: identifier,
-                    destroy: destroy,
-                    urlMaster: urlMaster,
-                    isDirect: isDirect,
-					mediaName: MyUtils.escapeFileName(mediaName)
-				}
+				data: data
 			}, function(response){
 				loadMonitoredMedia();
 			});
@@ -222,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	})();
 	
 	
-	//manual
+	//manual - 手动 ----------------------------------------------------------------
 	(function(){
 		document.getElementById("manual-download").onclick = function(e){
 			e.stopPropagation();
@@ -271,10 +272,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	var downLoop = null;
 	function downLoopClear() {
-		if (downLoop != null) clearInterval(downLoop);
+		if (downLoop != null) {
+			clearInterval(downLoop)
+			downLoop = null
+		}
 	}
-	//download
+
+	//download - 下载 ----------------------------------------------------------------
 	(function(){
+		downLoopClear();
 		//download ui
 		(function(){
 			var _showIds = [
@@ -292,12 +298,6 @@ document.addEventListener("DOMContentLoaded", function () {
 				e.preventDefault();
 				e.stopPropagation();
 
-				//初始化刷新
-				downLoop = setInterval(()=>{
-					metricDownload();
-					console.log("下载刷新")
-				}, 1000);
-				
 				for(var x in _showIds){
 					if(this.id == _showIds[x][0].id){
 						__addClass(_showIds[x][0], "active");
@@ -310,15 +310,19 @@ document.addEventListener("DOMContentLoaded", function () {
 					}
 				}
 			}
-			
 		})();
-		
-	
+
 		document.getElementById("download-reload").onclick = function(e){
 			e.stopPropagation();
-			metricDownload();
+			downLoop = setInterval(()=>{
+				if (downLoop == null) {
+					downLoopClear();
+					return
+				}
+				metricDownload();
+				console.log("downLoop")
+			}, 1000);
 		}
-
 
 		function metricDownload(){
 			chrome.runtime.sendMessage({
@@ -328,7 +332,7 @@ document.addEventListener("DOMContentLoaded", function () {
 				metricDownloadBatch(response.downloadBatches);
 			});
 		}
-		
+		//下载 - 批次 - 列表 --------------------------------------------------------------------------
 		function metricDownloadBatch(data){
 			var contentDom = document.getElementById("download-batch-content");
 			contentDom.innerHTML = data.length == 0 ? chrome.i18n.getMessage("nothing") : "";
@@ -340,17 +344,17 @@ document.addEventListener("DOMContentLoaded", function () {
 				var dom = document.createElement("div");
 				var html = (
 					'<hr/>' +
-					'<span class="badge badge-name" data-title="downloadDatchName">' + obj.showName + '</span>' +
-					'<span class="badge" data-title="downloadTaskWaitCnt">' + obj.waitCnt + '</span>' +
+					'<span class="badge badge-name" data-title="downloadDatchName">' + obj.showName.substring(0, 30) + '</span>' +
+					// '<span class="badge" data-title="downloadTaskWaitCnt">' + obj.waitCnt + '</span>' +
 					'<span class="badge" data-title="downloadTaskCompletedCnt">' + obj.completedCnt + '</span>' +
-					'<span class="badge" data-title="downloadTaskTriggeredCnt">' + obj.triggeredCnt + '</span>' +
+					// '<span class="badge" data-title="downloadTaskTriggeredCnt">' + obj.triggeredCnt + '</span>' +
 					'<span class="badge" data-title="downloadTaskSum">' + obj.sum + '</span>'
 				);
 				dom.innerHTML = html;
 				contentDom.appendChild(dom);
 			}
 		}
-		
+		//下载 - 正在下载的任务 ----------------------------------------------------------------------------------
 		function metricDownloadDownloading(data, custom){
 			var contentDom = document.getElementById("download-downloading-content");
 			contentDom.innerHTML = data.length == 0 ? chrome.i18n.getMessage("nothing") : "";
@@ -358,7 +362,7 @@ document.addEventListener("DOMContentLoaded", function () {
 			
 			for(var x in data){
 				var obj = data[x];
-				
+				console.log("isChromeTarget:", MyUtils.isChromeTarget(obj.id), "id:", obj.id);
                 if(MyUtils.isChromeTarget(obj.id)){
                     metricDownloadDownloadingChrome(contentDom, obj);
                 }else{
@@ -519,7 +523,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	})();
 	
 	
-	//settings
+	//settings - 设置 ----------------------------------------------------------------
 	(function(){
 		
 		function init(){
@@ -611,7 +615,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	})();
 	
 	
-	//i18n
+	//i18n - 语言切换 ----------------------------------------------------------------
 	(function(){
 		
 		document.title = chrome.i18n.getMessage("appName");
@@ -665,7 +669,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	})();
 
 
-	//running
+	//running - 运行 ----------------------------------------------------------------
 	(function(){
 		//初始化刷新
 		loadRunningInfo();

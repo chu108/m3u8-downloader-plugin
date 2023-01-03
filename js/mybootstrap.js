@@ -19,7 +19,9 @@ var MyBootstrap = (function () {
                     sendResponse({success: true});
                     return ;
                 }
+                console.log("1.request:", request, "request.data:", request.data);
 				var mediaItem = request.data.destroy ? MyChromeMediaMonitor.take(request.data.identifier) : MyChromeMediaMonitor.element(request.data.identifier);
+                console.log("mediaItem:", mediaItem);
                 if(request.data.urlMaster){
                     mediaItem.url = request.data.urlMaster;
                     mediaItem.parseResult = null;
@@ -28,7 +30,9 @@ var MyBootstrap = (function () {
                     mediaItem.mediaType = "video";
                 }
 				sendResponse({success: true});
-				_downloadMonitoredMedia({ mediaItem: mediaItem, mediaName: request.data.mediaName });
+                let data = { mediaItem: mediaItem, mediaName: request.data.mediaName }
+                console.log("2._downloadMonitoredMedia.data:", data);
+				_downloadMonitoredMedia(data);
 			}else if(request.action == "deletemonitoredmedia"){
 				MyChromeMediaMonitor.take(request.data.identifier);
 				sendResponse({success: true});
@@ -120,6 +124,7 @@ var MyBootstrap = (function () {
 			}, 
 			mediaName: data.mediaName
 		};
+        console.log("3.toSend:", toSend, "data.mediaItem:", data.mediaItem)
 		if(data.mediaItem.mediaType == "m3u8"){
 			_downloadM3u8(toSend, data.mediaItem.parseResult);
 		}else{
@@ -128,6 +133,7 @@ var MyBootstrap = (function () {
 	}
 	
 	function _downloadM3u8(data, parseResult){
+        console.log("4._downloadM3u8.data:", data, "parseResult:", parseResult)
 		if(parseResult == null){
             MyVideox.getInfo("m3u8", data.reqConfig.url, data.reqConfig.method, data.reqConfig.url, data.reqConfig.headers, function(result){
                 if(result == null){
@@ -146,10 +152,11 @@ var MyBootstrap = (function () {
         if(parseResult.isMasterPlaylist){
             return ;
         }
+        console.log("5._downloadM3u8CustomImpl.data:", data, "parseResult:", parseResult)
         const uniqueKey = MyUtils.genRandomString();
 		const downloadDirectory = chrome.i18n.getMessage("appName") + "-" + uniqueKey;
-        
-        MyM3u8Processer.saveDownloadContext({
+        console.log("6.uniqueKey:", uniqueKey, "downloadDirectory:", downloadDirectory)
+        let loadData = {
             id: uniqueKey,
             downloadDirectory: downloadDirectory,
             parseResult: parseResult,
@@ -170,7 +177,9 @@ var MyBootstrap = (function () {
             },
             mediaName: data.mediaName,
             mergeCallback: mergeCallback
-        });
+        }
+        console.log("7.loadData:", loadData)
+        MyM3u8Processer.saveDownloadContext(loadData);
         stepDownloadKey();
         
         function stepDownloadKey(){
@@ -190,7 +199,7 @@ var MyBootstrap = (function () {
                     custom: { phase: "key", contextId: uniqueKey, keyRef: keyRef }
                 });
             });
-            
+            console.log("8.tasks:", tasks, "showName:", data.mediaName + ".multiplekey", "stepDownloadTs:", stepDownloadTs)
             MyDownload.download({
                 tasks: tasks, 
                 showName: data.mediaName + ".multiplekey"

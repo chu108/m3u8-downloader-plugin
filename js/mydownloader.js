@@ -140,6 +140,7 @@ var MyDownloader = (function () {
                         return ;
                     }
                     if(item.restart){
+                        console.log("item:", item)
                         item.state = "interrupted";
                         _notify(item, callback);
                         return ;

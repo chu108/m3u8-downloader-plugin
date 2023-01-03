@@ -13,7 +13,13 @@ var MyChromeMediaMonitor = (function () {
         this.isMasterPlaylist = null;
         this.immutableInfo = false;
         this.requestData = null;
-        
+        this.addr = null;
+
+        chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
+            console.log("tabs:", tabs)
+            this.addr = tabs[0].url;
+        });
+
         _MediaItem.prototype.buildInfo = function(result){
             if(this.immutableInfo){
                 throw "illegal state";
