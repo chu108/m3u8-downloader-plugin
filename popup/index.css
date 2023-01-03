@@ -1,14 +1,14 @@
 body {
 	margin: 0;
 	font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
-	font-size: 1rem;
+	font-size: 0.85rem;
 	font-weight: 400;
 	line-height: 1.2;
 	color: #212529;
 	text-align: left;
 	background-color: #fff;
-	width: 462px;
-	padding: 2px 2px;
+	width: 510px;
+	padding: 5px;
 	border: none;
 }
 ul {
@@ -84,8 +84,9 @@ a {
 	user-select: none;
 	word-break: break-all;
 	white-space: normal;
-	margin-top: 1px;
-    margin-bottom: 1px;
+	margin-top: 5px;
+    margin-bottom: 5px;
+
 }
 .badge-url {
 	text-align: left;
@@ -118,7 +119,7 @@ hr {
     max-height: 18px;
 }
 input[type="text"] , input[type="number"] {
-    padding: 0;
+    padding: 0 3px;
     margin: 1px 0px 1px 0px;
 	display: inline-block;
     height: 1.3em;
@@ -147,6 +148,7 @@ input[type="checkbox"] {
 }
 .not-select {
 	user-select: none;
+    margin: 5px 0px;
 }
 #page-wrapper {
 	max-height: 435px;

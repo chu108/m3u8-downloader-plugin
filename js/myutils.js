@@ -160,13 +160,13 @@ var MyUtils = (function(){
             return ! (typeof downloadId == "string" || downloadId instanceof String );
         },
         formatBandwidth: function(bandwidth){
-            let dividend = 1 , unit = "bps";
+            let dividend = 1 , unit = "b";
             if(1000 * 1000 <= bandwidth){
                 dividend = 1000 * 1000;
-                unit = "Mbps";
+                unit = "M";
             }else if(1000 <= bandwidth){
                 dividend = 1000;
-                unit = "Kbps";
+                unit = "K";
             }
             const num = bandwidth / dividend;
             const intPart = Math.trunc(num);

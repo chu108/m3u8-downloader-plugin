@@ -31,6 +31,8 @@ document.addEventListener("DOMContentLoaded", function () {
 		function showPage(e){
 			e.preventDefault();
 			e.stopPropagation();
+
+			console.log("e:", e);
 			
 			for(var x in _showIds){
 				if(this.id == _showIds[x][0].id){
@@ -46,10 +48,12 @@ document.addEventListener("DOMContentLoaded", function () {
 		}
 		
 	})();
-	
-	
+
+
 	//monitor
 	(function(){
+		//初始化刷新
+		loadMonitoredMedia();
 		document.getElementById("monitor-reload").onclick = function(e){
 			e.stopPropagation();
 			loadMonitoredMedia();
@@ -59,8 +63,8 @@ document.addEventListener("DOMContentLoaded", function () {
 			e.stopPropagation();
 			cleanMonitoredMedia();
 		};
-		
-		
+
+
 		function cleanMonitoredMedia(){
 			chrome.runtime.sendMessage({
 				action: "cleanmonitoredmedia"
@@ -68,20 +72,25 @@ document.addEventListener("DOMContentLoaded", function () {
 				loadMonitoredMedia();
 			});
 		}
-		
+		//监控-刷新
 		function loadMonitoredMedia(){
 			var contentDom = document.getElementById("monitor-content");
 			contentDom.innerHTML = "......";
-			
+
 			chrome.runtime.sendMessage({
 				action: "loadmonitoredmedia"
 			}, function(response){
 				var data = response;
-				
+
 				contentDom.innerHTML = "";
                 let dataCount = 0;
                 let monitorFilter = document.getElementById("monitor-filter");
                 let targetMediaType = monitorFilter[monitorFilter.selectedIndex].value;
+
+				data.sort((a, b)=>{
+					return a.duration < b.duration;
+				})
+
 				for(var x in data){
 					var obj = data[x];
 					if(targetMediaType && obj.mediaType != targetMediaType){
@@ -90,23 +99,20 @@ document.addEventListener("DOMContentLoaded", function () {
                     dataCount ++;
 					var nameId = "monitor-name-"+x;
 					var playlistId = "monitor-playlist-"+x;
-                    
+
 					var dom = document.createElement("div");
 					var html = (
 						'<hr/>' +
-						'<span class="badge badge-url" data-title="url">' + obj.url + '</span>' +
-						( obj.tabItem ? '<span data-title="monitorFromTab">' + ( obj.tabItem.favIconUrl ? '<img class="favIcon" src="'+ obj.tabItem.favIconUrl +'"/>' : '' ) + '<span class="badge">' + obj.tabItem.title + '</span></span>' : '' ) +
+						'<input type="text" data-place="inputFileName" id="' + nameId + '" style="width: 118px;" value="'+obj.url.split("/").pop()+'" />' +
 						( obj.duration ? '<span class="badge" data-title="duration">' + MyUtils.formatHms(obj.duration) + '</span>' : '' ) +
 						( obj.length ? '<span class="badge">' + obj.length + '</span>' : '' ) +
-						'<span class="badge">' + obj.method + '</span>' +
-						'<span class="badge">' + obj.mediaType + '</span>' +
-						( obj.mime ? '<span class="badge">' + obj.mime + '</span>' : '' ) +
-						'<input type="text" data-place="inputFileName" id="' + nameId + '" />'
+						'<span class="badge">' + obj.mediaType + '</span>'
 					);
 					dom.innerHTML = html;
-					
+					dom.style.lineHeight = '30px'
+
                     const isMasterPlaylist = obj.mediaType == "m3u8" && obj.isMasterPlaylist;
-					
+
 					var dom2 = document.createElement("span");
 					dom2.innerHTML = '<span class="badge badge-b" data-msg="download">download</span>';
                     dom2.dataset["identifier"] = obj.identifier;
@@ -114,20 +120,20 @@ document.addEventListener("DOMContentLoaded", function () {
 					dom2.dataset["nameId"] = nameId;
                     dom2.dataset["playlistId"] = isMasterPlaylist ? playlistId : "";
 					dom2.onclick = downloadMonitoredMedia;
-					
+
 					var dom3 = document.createElement("span");
 					dom3.innerHTML = '<span class="badge badge-b" data-msg="delete">delete</span>';
 					dom3.dataset["identifier"] = obj.identifier;
 					dom3.onclick = deleteMonitoredMedia;
-					
+
 					var dom4 = document.createElement("span");
-					dom4.innerHTML = '<span class="badge badge-b" data-msg="copyUrl">copyUrl</span>';
+					dom4.innerHTML = '<span class="badge badge-b" data-msg="copyUrl">copy</span>';
 					dom4.dataset["url"] = obj.url;
 					dom4.onclick = copyMonitoredUrl;
-                    
-                    
+
+
                     contentDom.appendChild(dom);
-                    
+
                     if(isMasterPlaylist){
                         let dom5 = document.createElement("span");
                         const mtSet = new Set();
@@ -138,7 +144,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             let pi = obj.parseResult.playList[r];
                             const opt = document.createElement("option");
                             opt.value = pi.url;
-                            opt.text = pi.mediaType + " - " + MyUtils.formatBandwidth(pi.bandwidth);
+                            opt.text = pi.mediaType + "/" + MyUtils.formatBandwidth(pi.bandwidth);
                             opt.dataset["direct"] = pi.isDirect ? String(pi.isDirect) : "";
                             spl.appendChild(opt);
                             mtSet.add( pi.mediaType );
@@ -147,19 +153,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         dom5.appendChild(spl);
                         dom.appendChild(dom5);
                     }
-					
 					dom.appendChild(dom2);
 					dom.appendChild(dom3);
 					dom.appendChild(dom4);
 				}
-                
+
                 if(dataCount == 0){
                     contentDom.innerHTML = chrome.i18n.getMessage("nothing");
                 }
 				document.getElementById("monitor-count").innerHTML = dataCount;
 			});
 		}
-		
+
 		
 		function copyMonitoredUrl(e){
 			e.stopPropagation();
@@ -263,8 +268,11 @@ document.addEventListener("DOMContentLoaded", function () {
 		}
 		
 	})();
-	
-	
+
+	var downLoop = null;
+	function downLoopClear() {
+		if (downLoop != null) clearInterval(downLoop);
+	}
 	//download
 	(function(){
 		//download ui
@@ -283,6 +291,12 @@ document.addEventListener("DOMContentLoaded", function () {
 			function showPage(e){
 				e.preventDefault();
 				e.stopPropagation();
+
+				//初始化刷新
+				downLoop = setInterval(()=>{
+					metricDownload();
+					console.log("下载刷新")
+				}, 1000);
 				
 				for(var x in _showIds){
 					if(this.id == _showIds[x][0].id){
@@ -304,8 +318,8 @@ document.addEventListener("DOMContentLoaded", function () {
 			e.stopPropagation();
 			metricDownload();
 		}
-		
-		
+
+
 		function metricDownload(){
 			chrome.runtime.sendMessage({
 				action: "metricdownload"
@@ -649,31 +663,33 @@ document.addEventListener("DOMContentLoaded", function () {
 		});
 		
 	})();
-	
-	
+
+
 	//running
 	(function(){
+		//初始化刷新
+		loadRunningInfo();
 		document.getElementById("running-reload").onclick = function(e){
 			e.stopPropagation();
 			loadRunningInfo();
 		};
-		
+
 		function loadRunningInfo(){
 			var contentDom = document.getElementById("running-content");
 			contentDom.innerHTML = "......";
-			
+
 			chrome.runtime.sendMessage({
 				action: "loadrunninginfo"
 			}, function(response){
 				var data = response;
-				
+
 				var html = "";
 				for(var key in data){
 					var arr = data[key];
 					arr.unshift( key );
 					html += ('<div><span class="badge">' + arr.join("&nbsp;&nbsp;&nbsp;&nbsp;") + '</span></div>');
 				}
-				
+
 				contentDom.innerHTML = html;
 			});
 		}
