@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-	
     //global
 	function __addClass(dom, clz){
 		var cln = dom.className.replace(clz, "").trim();
@@ -9,20 +8,17 @@ document.addEventListener("DOMContentLoaded", function () {
 		dom.className = dom.className.replace(clz, "").trim();
 	}
     function __containsClass(dom, clz){
-        return dom.className.indexOf(clz) != -1;
+        return dom.className.indexOf(clz) !== -1;
     }
 	
 	//show ui
 	(function(){
-		var _showIds = [
+		let _showIds = [
 			["monitor-show", "monitor-page"],
-			["manual-show", "manual-page"],
 			["download-show", "download-page"],
-			["settings-show", "settings-page"],
-			["running-show", "running-page"]
 		];
 		
-		for(var x in _showIds){
+		for(let x in _showIds){
 			_showIds[x][0] = document.getElementById(_showIds[x][0]);
 			_showIds[x][1] = document.getElementById(_showIds[x][1]);
 			_showIds[x][0].onclick = showPage;
@@ -35,8 +31,8 @@ document.addEventListener("DOMContentLoaded", function () {
 			let include = ["download-show"]
 			if (!include.includes(e.target.id)) downLoopClear();
 
-			for(var x in _showIds){
-				if(this.id == _showIds[x][0].id){
+			for(let x in _showIds){
+				if(this.id === _showIds[x][0].id){
 					__addClass(_showIds[x][0].parentElement, "active");
 					__removeClass(_showIds[x][1], "hide");
 					__addClass(_showIds[x][1], "show");
@@ -75,109 +71,113 @@ document.addEventListener("DOMContentLoaded", function () {
 		function loadMonitoredMedia(){
 			var contentDom = document.getElementById("monitor-content");
 			contentDom.innerHTML = "......";
+			chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
+				console.log("当前URL:", tabs[0].url)
+				let tab_url = tabs[0].url;
+				chrome.runtime.sendMessage({
+					action: "loadmonitoredmedia",
+					url: tab_url
+				}, function(response){
+					let data = response;
+					console.log("监控列表:", response)
+					console.log("当前url:", window.location.href)
+					contentDom.innerHTML = "";
+					let dataCount = 0;
+					let monitorFilter = document.getElementById("monitor-filter");
+					let targetMediaType = monitorFilter[monitorFilter.selectedIndex].value;
 
-			chrome.runtime.sendMessage({
-				action: "loadmonitoredmedia"
-			}, function(response){
-				var data = response;
-				console.log("response:", response)
-				console.log("href:", window.location.href)
-				contentDom.innerHTML = "";
-                let dataCount = 0;
-                let monitorFilter = document.getElementById("monitor-filter");
-                let targetMediaType = monitorFilter[monitorFilter.selectedIndex].value;
+					data.sort((a, b)=>{
+						return a.duration < b.duration;
+					})
 
-				data.sort((a, b)=>{
-					return a.duration < b.duration;
-				})
+					for(let x in data){
+						let obj = data[x];
+						if(targetMediaType && obj.mediaType !== targetMediaType){
+							continue;
+						}
+						dataCount ++;
+						let nameId = "monitor-name-"+x;
+						let playlistId = "monitor-playlist-"+x;
 
-				for(var x in data){
-					var obj = data[x];
-					if(targetMediaType && obj.mediaType != targetMediaType){
-                        continue;
-                    }
-                    dataCount ++;
-					var nameId = "monitor-name-"+x;
-					var playlistId = "monitor-playlist-"+x;
+						let dom = document.createElement("div");
+						let html = (
+							'<hr/>' +
+							// '<input type="text" data-place="inputFileName" id="' + nameId + '" style="width: 110px;" value="'+obj.url.split("/").pop()+'" />' +
+							'<input type="text" data-place="inputFileName" id="' + nameId + '" style="width: 98%;" value="'+obj.tabItem.title+'" />' +
+							( obj.duration ? '<span class="badge" data-title="duration">' + MyUtils.formatHms(obj.duration) + '</span>' : '' ) +
+							'<span class="badge">' + obj.mediaType + '</span>'
+						);
+						dom.innerHTML = html;
+						dom.style.lineHeight = '30px'
 
-					var dom = document.createElement("div");
-					var html = (
-						'<hr/>' +
-						// '<input type="text" data-place="inputFileName" id="' + nameId + '" style="width: 110px;" value="'+obj.url.split("/").pop()+'" />' +
-						'<input type="text" data-place="inputFileName" id="' + nameId + '" style="width: 98%;" value="'+obj.tabItem.title+'" />' +
-						( obj.duration ? '<span class="badge" data-title="duration">' + MyUtils.formatHms(obj.duration) + '</span>' : '' ) +
-						'<span class="badge">' + obj.mediaType + '</span>'
-					);
-					dom.innerHTML = html;
-					dom.style.lineHeight = '30px'
+						const isMasterPlaylist = obj.mediaType === "m3u8" && obj.isMasterPlaylist;
 
-                    const isMasterPlaylist = obj.mediaType == "m3u8" && obj.isMasterPlaylist;
+						let dom2 = document.createElement("span");
+						dom2.innerHTML = '<span class="badge badge-b" data-msg="download">download</span>';
+						dom2.dataset["identifier"] = obj.identifier;
+						dom2.dataset["url"] = obj.url;
+						dom2.dataset["nameId"] = nameId;
+						dom2.dataset["playlistId"] = isMasterPlaylist ? playlistId : "";
+						dom2.dataset["tab_url"] = tab_url;
+						dom2.onclick = downloadMonitoredMedia;
 
-					var dom2 = document.createElement("span");
-					dom2.innerHTML = '<span class="badge badge-b" data-msg="download">download</span>';
-                    dom2.dataset["identifier"] = obj.identifier;
-					dom2.dataset["url"] = obj.url;
-					dom2.dataset["nameId"] = nameId;
-                    dom2.dataset["playlistId"] = isMasterPlaylist ? playlistId : "";
-					dom2.onclick = downloadMonitoredMedia;
+						let dom3 = document.createElement("span");
+						dom3.innerHTML = '<span class="badge badge-b" data-msg="delete">delete</span>';
+						dom3.dataset["identifier"] = obj.identifier;
+						dom3.onclick = deleteMonitoredMedia;
 
-					var dom3 = document.createElement("span");
-					dom3.innerHTML = '<span class="badge badge-b" data-msg="delete">delete</span>';
-					dom3.dataset["identifier"] = obj.identifier;
-					dom3.onclick = deleteMonitoredMedia;
+						let dom4 = document.createElement("span");
+						dom4.innerHTML = '<span class="badge badge-b" data-msg="copyUrl">copy</span>';
+						dom4.dataset["url"] = obj.url;
+						dom4.onclick = copyMonitoredUrl;
 
-					var dom4 = document.createElement("span");
-					dom4.innerHTML = '<span class="badge badge-b" data-msg="copyUrl">copy</span>';
-					dom4.dataset["url"] = obj.url;
-					dom4.onclick = copyMonitoredUrl;
+						contentDom.appendChild(dom);
 
+						if(isMasterPlaylist){
+							let dom5 = document.createElement("span");
+							const mtSet = new Set();
+							const spl = document.createElement("select");
+							spl.id = playlistId;
+							spl.className = "empty-select";
+							for(let r in obj.parseResult.playList){
+								let pi = obj.parseResult.playList[r];
+								const opt = document.createElement("option");
+								opt.value = pi.url;
+								opt.text = pi.mediaType + "/" + MyUtils.formatBandwidth(pi.bandwidth);
+								opt.dataset["direct"] = pi.isDirect ? String(pi.isDirect) : "";
+								spl.appendChild(opt);
+								mtSet.add( pi.mediaType );
+							}
+							spl.dataset["destroy"] = mtSet.size <= 1 ? String(true) : "";
+							dom5.appendChild(spl);
+							dom.appendChild(dom5);
+						}
+						dom.appendChild(dom2);
+						dom.appendChild(dom3);
+						dom.appendChild(dom4);
+					}
 
-                    contentDom.appendChild(dom);
-
-                    if(isMasterPlaylist){
-                        let dom5 = document.createElement("span");
-                        const mtSet = new Set();
-                        const spl = document.createElement("select");
-                        spl.id = playlistId;
-                        spl.className = "empty-select";
-                        for(let r in obj.parseResult.playList){
-                            let pi = obj.parseResult.playList[r];
-                            const opt = document.createElement("option");
-                            opt.value = pi.url;
-                            opt.text = pi.mediaType + "/" + MyUtils.formatBandwidth(pi.bandwidth);
-                            opt.dataset["direct"] = pi.isDirect ? String(pi.isDirect) : "";
-                            spl.appendChild(opt);
-                            mtSet.add( pi.mediaType );
-                        }
-                        spl.dataset["destroy"] = mtSet.size <= 1 ? String(true) : "";
-                        dom5.appendChild(spl);
-                        dom.appendChild(dom5);
-                    }
-					dom.appendChild(dom2);
-					dom.appendChild(dom3);
-					dom.appendChild(dom4);
-				}
-
-                if(dataCount == 0){
-                    contentDom.innerHTML = chrome.i18n.getMessage("nothing");
-                }
-				document.getElementById("monitor-count").innerHTML = dataCount;
+					if(dataCount === 0){
+						contentDom.innerHTML = chrome.i18n.getMessage("nothing");
+					}
+					document.getElementById("monitor-count").innerHTML = dataCount;
+				});
 			});
+
 		}
 
 		
 		function copyMonitoredUrl(e){
 			e.stopPropagation();
-			var copyholder = document.getElementById("monitor-copyholder");
+			let copyholder = document.getElementById("monitor-copyholder");
 			copyholder.value = this.dataset["url"];
 			copyholder.select();
 			document.execCommand("copy");
 		}
-		
-		
+
 		function deleteMonitoredMedia(e){
 			e.stopPropagation();
-			var identifier = this.dataset["identifier"];
+			let identifier = this.dataset["identifier"];
 			
 			chrome.runtime.sendMessage({
 				action: "deletemonitoredmedia",
@@ -189,11 +189,11 @@ document.addEventListener("DOMContentLoaded", function () {
 			});
 		}
 		
-		
+		//点击下载按钮
 		function downloadMonitoredMedia(e){
 			e.stopPropagation();
-            var identifier = this.dataset["identifier"];
-			console.log("dataset:", this.dataset);
+            let identifier = this.dataset["identifier"];
+			console.log("点击下载后，当前数据dataset:", this.dataset);
             let urlMaster = null, destroy = true, isDirect = false;
             if(this.dataset["playlistId"]){
                 let spl = document.getElementById(this.dataset["playlistId"]);
@@ -202,17 +202,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 isDirect = spl[spl.selectedIndex].dataset["direct"] ? true : false;
             }
             
-            var mediaName = document.getElementById(this.dataset["nameId"]).value.trim();
+            let mediaName = document.getElementById(this.dataset["nameId"]).value.trim();
 			mediaName = mediaName || MyUtils.getLastPathName( urlMaster || this.dataset["url"] ) || MyUtils.genRandomString();
-			console.log("mediaName:", mediaName);
+			console.log("媒体名称:", mediaName);
 			let data = {
 				identifier: identifier,
 				destroy: destroy,
 				urlMaster: urlMaster,
 				isDirect: isDirect,
-				mediaName: MyUtils.escapeFileName(mediaName)
+				mediaName: MyUtils.escapeFileName(mediaName),
+				tabUrl: this.dataset["tab_url"]
 			}
-			console.log("data:", data);
+			console.log("发送需要下载的媒体:", data);
 			chrome.runtime.sendMessage({
 				action: "downloadmonitoredmedia",
 				data: data
@@ -221,56 +222,8 @@ document.addEventListener("DOMContentLoaded", function () {
 			});
 		}
 	})();
-	
-	
-	//manual - 手动 ----------------------------------------------------------------
-	(function(){
-		document.getElementById("manual-download").onclick = function(e){
-			e.stopPropagation();
-			var url = document.getElementById("manual-url").value.trim();
-            if(! url){
-				document.getElementById("manual-url").focus();
-				return ;
-			}
-			try{
-				new URL(url);
-			}catch(err){
-				document.getElementById("manual-url").focus();
-				return ;
-			}
-            
-			var mediaName = document.getElementById("manual-name").value.trim();
-			mediaName = mediaName || MyUtils.getLastPathName(url) || MyUtils.genRandomString();
-			var mediaType = document.getElementById("manual-m3u8").checked ? "m3u8" : "video";
-			
-            var methodDom = document.getElementById("manual-method");
-            var method = methodDom[methodDom.selectedIndex].value;
-            
-            var headersContent = document.getElementById("manual-headers").value.trim();
-			
-			chrome.runtime.sendMessage({
-				action: "downloadmedia",
-				data: {
-					url: url,
-					method: method,
-                    headers: MyUtils.parseHeaders(headersContent),
-					mediaName: MyUtils.escapeFileName(mediaName),
-					mediaType: mediaType
-				}
-			}, function(response){
-			});
-		}
-		
-		
-		document.getElementById("manual-clean").onclick = function(e){
-			e.stopPropagation();
-			document.getElementById("manual-url").value = "";
-			document.getElementById("manual-name").value = "";
-		}
-		
-	})();
 
-	var downLoop = null;
+	let downLoop = null;
 	function downLoopClear() {
 		if (downLoop != null) {
 			clearInterval(downLoop)
@@ -281,14 +234,14 @@ document.addEventListener("DOMContentLoaded", function () {
 	//download - 下载 ----------------------------------------------------------------
 	(function(){
 		downLoopClear();
-		//download ui
+		//功能tab切换
 		(function(){
-			var _showIds = [
+			let _showIds = [
 				["download-downloading-show", "download-downloading-page"],
 				["download-batch-show", "download-batch-page"]
 			];
 			
-			for(var x in _showIds){
+			for(let x in _showIds){
 				_showIds[x][0] = document.getElementById(_showIds[x][0]);
 				_showIds[x][1] = document.getElementById(_showIds[x][1]);
 				_showIds[x][0].onclick = showPage;
@@ -298,8 +251,8 @@ document.addEventListener("DOMContentLoaded", function () {
 				e.preventDefault();
 				e.stopPropagation();
 
-				for(var x in _showIds){
-					if(this.id == _showIds[x][0].id){
+				for(let x in _showIds){
+					if(this.id === _showIds[x][0].id){
 						__addClass(_showIds[x][0], "active");
 						__removeClass(_showIds[x][1], "hide");
 						__addClass(_showIds[x][1], "show");
@@ -311,43 +264,38 @@ document.addEventListener("DOMContentLoaded", function () {
 				}
 			}
 		})();
-
+		//刷新下载列表
 		document.getElementById("download-reload").onclick = function(e){
 			e.stopPropagation();
 			downLoop = setInterval(()=>{
-				if (downLoop == null) {
+				if (downLoop === null) {
 					downLoopClear();
 					return
 				}
-				metricDownload();
+				chrome.runtime.sendMessage({
+					action: "metricdownload"
+				}, function(response){
+					metricDownloadDownloading(response.downloadingTasks, response.downloadingTasksCustom);
+					metricDownloadBatch(response.downloadBatches);
+				});
 				console.log("downLoop")
 			}, 1000);
 		}
 
-		function metricDownload(){
-			chrome.runtime.sendMessage({
-				action: "metricdownload"
-			}, function(response){
-				metricDownloadDownloading(response.downloadingTasks, response.downloadingTasksCustom);
-				metricDownloadBatch(response.downloadBatches);
-			});
-		}
 		//下载 - 批次 - 列表 --------------------------------------------------------------------------
 		function metricDownloadBatch(data){
-			var contentDom = document.getElementById("download-batch-content");
-			contentDom.innerHTML = data.length == 0 ? chrome.i18n.getMessage("nothing") : "";
+			let contentDom = document.getElementById("download-batch-content");
+			contentDom.innerHTML = data.length === 0 ? chrome.i18n.getMessage("nothing") : "";
 			document.getElementById("download-batch-count").innerHTML = data.length;
 			
-			for(var x in data){
-				var obj = data[x];
+			for(let x in data){
+				let obj = data[x];
 				
-				var dom = document.createElement("div");
-				var html = (
+				let dom = document.createElement("div");
+				let html = (
 					'<hr/>' +
 					'<span class="badge badge-name" data-title="downloadDatchName">' + obj.showName.substring(0, 30) + '</span>' +
-					// '<span class="badge" data-title="downloadTaskWaitCnt">' + obj.waitCnt + '</span>' +
 					'<span class="badge" data-title="downloadTaskCompletedCnt">' + obj.completedCnt + '</span>' +
-					// '<span class="badge" data-title="downloadTaskTriggeredCnt">' + obj.triggeredCnt + '</span>' +
 					'<span class="badge" data-title="downloadTaskSum">' + obj.sum + '</span>'
 				);
 				dom.innerHTML = html;
@@ -356,28 +304,27 @@ document.addEventListener("DOMContentLoaded", function () {
 		}
 		//下载 - 正在下载的任务 ----------------------------------------------------------------------------------
 		function metricDownloadDownloading(data, custom){
-			var contentDom = document.getElementById("download-downloading-content");
-			contentDom.innerHTML = data.length == 0 ? chrome.i18n.getMessage("nothing") : "";
+			let contentDom = document.getElementById("download-downloading-content");
+			contentDom.innerHTML = data.length === 0 ? chrome.i18n.getMessage("nothing") : "";
 			document.getElementById("download-downloading-count").innerHTML = data.length;
 			
-			for(var x in data){
-				var obj = data[x];
-				console.log("isChromeTarget:", MyUtils.isChromeTarget(obj.id), "id:", obj.id);
+			for(let x in data){
+				let obj = data[x];
+				console.log("正在下载记录:", MyUtils.isChromeTarget(obj.id), "id:", obj.id);
                 if(MyUtils.isChromeTarget(obj.id)){
                     metricDownloadDownloadingChrome(contentDom, obj);
                 }else{
                     metricDownloadDownloadingCustom(contentDom, obj, custom);
                 }
-                
 			}
 		}
         
         function metricDownloadDownloadingChrome(contentDom, obj){
-            var dom = document.createElement("div");
-            var html = '<hr/><span class="badge badge-name" data-title="fileName">' + obj.fileName + '</span>';
+            let dom = document.createElement("div");
+            let html = '<hr/><span class="badge badge-name" data-title="fileName">' + obj.fileName + '</span>';
             dom.innerHTML = html;
             
-            var dom2 = document.createElement("span");
+            let dom2 = document.createElement("span");
             dom2.innerHTML = '<span class="badge badge-b" data-msg="cancel">cancel</span>';
             dom2.dataset["downloadId"] = obj.id;
             dom2.addEventListener("click", cancelDownload);
@@ -386,7 +333,7 @@ document.addEventListener("DOMContentLoaded", function () {
             dom.appendChild(dom2);
             
             if(obj.canResume){
-                var dom3 = document.createElement("span");
+                let dom3 = document.createElement("span");
                 dom3.innerHTML = '<span class="badge badge-b" data-msg="resume">resume</span>';
                 dom3.dataset["downloadId"] = obj.id;
                 dom3.addEventListener("click", resumeDownload);
@@ -394,7 +341,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 dom.appendChild(dom3);
             }
             
-            var dom4 = document.createElement("span");
+            let dom4 = document.createElement("span");
             dom4.innerHTML = '<span class="badge badge-b" data-msg="copyUrl">copyUrl</span>';
             dom4.dataset["url"] = obj.url;
             dom4.onclick = copyDownloadUrl;
@@ -403,7 +350,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
 		function cancelDownload(e){
 			e.stopPropagation();
-			var downloadId = parseInt(this.dataset["downloadId"], 10);
+			let downloadId = parseInt(this.dataset["downloadId"], 10);
 			chrome.runtime.sendMessage({
 				action: "canceldownload",
 				data: {
@@ -416,7 +363,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		
 		function resumeDownload(e){
 			e.stopPropagation();
-			var downloadId = parseInt(this.dataset["downloadId"], 10);
+			let downloadId = parseInt(this.dataset["downloadId"], 10);
 			chrome.runtime.sendMessage({
 				action: "resumedownload",
 				data: {
@@ -429,7 +376,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
 		function copyDownloadUrl(e){
 			e.stopPropagation();
-			var copyholder = document.getElementById("download-copyholder");
+			let copyholder = document.getElementById("download-copyholder");
 			copyholder.value = this.dataset["url"];
 			copyholder.select();
 			document.execCommand("copy");
@@ -479,7 +426,7 @@ document.addEventListener("DOMContentLoaded", function () {
             operationDom.appendChild(restartDom);
             operationDom.appendChild(cancelDom);
             
-            if(data.state == "in_progress"){
+            if(data.state === "in_progress"){
                 statusDom.innerText = data.speed + ' ' + data.speedUnit + ' - ' + data.loaded + ' B' + ( data.lengthComputable ? ' , '+chrome.i18n.getMessage("downloadTotal")+' ' + data.total + ' B' + (data.remainSec >= 0 ? ' , '+chrome.i18n.getMessage("downloadRemaining")+' ' + data.remainSec  + ' '+chrome.i18n.getMessage("second") : '') : '' );
                 statusDom.style.display = "block";
                 if(data.lengthComputable){
@@ -497,7 +444,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     pauseDom.style.display = data.resumable ? "block" : "none";
                     restartDom.style.display = "none";
                 }
-            }else if(data.state == "interrupted"){
+            }else if(data.state === "interrupted"){
                 statusDom.innerText = data.loaded + ' B' + ( data.lengthComputable ? ' , '+chrome.i18n.getMessage("downloadTotal")+' ' + data.total + ' B' : '' ) + ' , '+chrome.i18n.getMessage("downloadError");
                 statusDom.style.display = "block";
                 progressDom1.style.display = "none";
@@ -510,7 +457,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     resumeDom.style.display = data.resumable ? "block" : "none";
                     restartDom.style.display = !data.resumable ? "block" : "none";
                 }
-            }else if(data.state == "complete"){
+            }else if(data.state === "complete"){
                 statusDom.style.display = "none";
                 progressDom1.style.display = "none";
                 pauseDom.style.display = "none";
@@ -519,102 +466,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 restartDom.style.display = "none";
             }
         }
-        
 	})();
-	
-	
-	//settings - 设置 ----------------------------------------------------------------
-	(function(){
-		
-		function init(){
-			chrome.runtime.sendMessage({
-				action: "getconfig"
-			}, function(response){
-				var data = response;
-				windowResize(data.popupWidth, data.popupHeight);
-				var senv = document.getElementById("settings-environment");
-				for(var s=0; s<senv.length; s++){
-					if(senv[s].value == data.environment){
-						senv.selectedIndex = s;
-						break;
-					}
-				}
-				document.getElementById("settings-tab").checked = data.showTab == "1";
-				document.getElementById("settings-duration").checked = data.showDuration == "1";
-				document.getElementById("settings-mntmax").value = data.monitoredQueueMax;
-				document.getElementById("settings-dlingmax").value = data.downloadingMax;
-				document.getElementById("settings-dlbtmax").value = data.downloadBatchMax;
-				document.getElementById("settings-popwidth").value = data.popupWidth;
-				document.getElementById("settings-popheight").value = data.popupHeight;
-				document.getElementById("settings-popupintab").checked = data.popupInTab == "1";
-				document.getElementById("settings-pwe").checked = data.promptWhenExist == "1";
-				document.getElementById("settings-nfar").checked = data.newFolderAtRoot == "1";
-				document.getElementById("settings-pswc").checked = data.playSoundWhenComplete == "1";
-                document.getElementById("settings-sd").checked = data.splitDiscontinuity == "1";
-                document.getElementById("settings-prothr").value = data.processerThreshold;
-                document.getElementById("settings-mr").value = data.matchingRule;
-			});
-		}
-		
-		init();
-		
-		function windowResize(w, h){
-			document.body.style.width = w + "px";
-            const pnh = MyUtils.outerHeight( document.getElementById("page-nav") );
-			document.getElementById("page-wrapper").style.maxHeight = (h-pnh) + "px";
-		}
-		
-		
-		document.querySelectorAll('input[type="number"]').forEach(function(dom){
-			dom.onkeydown = function(){
-				return false;
-			};
-		});
-		
-		document.getElementById("settings-submit").onclick = function(e){
-			e.stopPropagation();
-			var data = {};
-			var senv = document.getElementById("settings-environment");
-			data.environment = senv[senv.selectedIndex].value;
-			data.showTab = document.getElementById("settings-tab").checked ? "1" : "0";
-			data.monitoredQueueMax = parseInt(document.getElementById("settings-mntmax").value, 10);
-			data.downloadingMax = parseInt(document.getElementById("settings-dlingmax").value, 10);
-			data.downloadBatchMax = parseInt(document.getElementById("settings-dlbtmax").value, 10);
-			data.popupWidth = parseInt(document.getElementById("settings-popwidth").value, 10);
-			data.popupHeight = parseInt(document.getElementById("settings-popheight").value, 10);
-			data.popupInTab = document.getElementById("settings-popupintab").checked ? "1" : "0";
-			data.showDuration = document.getElementById("settings-duration").checked ? "1" : "0";
-			data.promptWhenExist = document.getElementById("settings-pwe").checked ? "1" : "0";
-			data.newFolderAtRoot = document.getElementById("settings-nfar").checked ? "1" : "0";
-			data.playSoundWhenComplete = document.getElementById("settings-pswc").checked ? "1" : "0";
-            data.splitDiscontinuity = document.getElementById("settings-sd").checked ? "1" : "0";
-            data.processerThreshold = parseInt(document.getElementById("settings-prothr").value, 10);
-            data.matchingRule = document.getElementById("settings-mr").value.trim();
-			
-			chrome.runtime.sendMessage({
-					action: "updateconfig",
-					data: data
-				}, function(response){
-				windowResize(data.popupWidth, data.popupHeight);
-				
-				if(! document.getElementById("settings-popupintab").disabled ){
-					chrome.browserAction.setPopup({
-						popup: data.popupInTab == "1" ? "" : chrome.extension.getURL("popup/index.html")
-					});
-				}
-			});
-		};
-        
-        document.getElementById("settings-mr").onclick = function(e){
-            e.stopPropagation();
-            if(! __containsClass(this, "textarea-mr-max")){
-                __removeClass(this, "textarea-mr");
-                __addClass(this, "textarea-mr-max");
-            }
-        };
-	})();
-	
-	
+
 	//i18n - 语言切换 ----------------------------------------------------------------
 	(function(){
 		
@@ -645,7 +498,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		
 		setupI18n(document);
 		
-		var observer = new MutationObserver(function(mutationList){
+		let observer = new MutationObserver(function(mutationList){
 			mutationList.forEach((mutation) => {
 			    switch (mutation.type) {
 			    case "childList":
@@ -666,37 +519,6 @@ document.addEventListener("DOMContentLoaded", function () {
 			childList: true
 		});
 		
-	})();
-
-
-	//running - 运行 ----------------------------------------------------------------
-	(function(){
-		//初始化刷新
-		loadRunningInfo();
-		document.getElementById("running-reload").onclick = function(e){
-			e.stopPropagation();
-			loadRunningInfo();
-		};
-
-		function loadRunningInfo(){
-			var contentDom = document.getElementById("running-content");
-			contentDom.innerHTML = "......";
-
-			chrome.runtime.sendMessage({
-				action: "loadrunninginfo"
-			}, function(response){
-				var data = response;
-
-				var html = "";
-				for(var key in data){
-					var arr = data[key];
-					arr.unshift( key );
-					html += ('<div><span class="badge">' + arr.join("&nbsp;&nbsp;&nbsp;&nbsp;") + '</span></div>');
-				}
-
-				contentDom.innerHTML = html;
-			});
-		}
 	})();
 	
 });

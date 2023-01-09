@@ -1,6 +1,6 @@
 var MyChromeMediaMonitor = (function () {
     
-	var _MediaItem = function(identifier, url, tabItem, method, mediaType, mime, length){
+	var _MediaItem = function(identifier, url, tabItem, method, mediaType, mime, length, tabUrl = ""){
         this.identifier = identifier;
         this.url = url;
         this.tabItem = tabItem;
@@ -13,12 +13,7 @@ var MyChromeMediaMonitor = (function () {
         this.isMasterPlaylist = null;
         this.immutableInfo = false;
         this.requestData = null;
-        this.addr = null;
-
-        chrome.tabs.query({currentWindow: true, active: true}, (tabs) => {
-            console.log("tabs:", tabs)
-            this.addr = tabs[0].url;
-        });
+        this.tabUrl = null;
 
         _MediaItem.prototype.buildInfo = function(result){
             if(this.immutableInfo){
@@ -320,6 +315,7 @@ var MyChromeMediaMonitor = (function () {
 		if(details.tabId == null || details.tabId < 0){
 			return ;
 		}
+        console.log("details:", details)
 		if(MyUtils.isSuccessful(details.statusCode)){
             const requestData = _monitoredRequestCache.obtain(details.requestId);
 			var media = _getMedia(details.url, details.responseHeaders);

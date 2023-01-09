@@ -1,7 +1,7 @@
-var MyDownload = (function () {
+let MyDownload = (function () {
 	
-	var _downloadBatchHolder = (function(){
-		var _queue = new Array();
+	let _downloadBatchHolder = (function(){
+		let _queue = new Array();
 		return {
 			isFull: function(){
 				return _queue.length >= MyChromeConfig.get("downloadBatchMax");
@@ -10,22 +10,22 @@ var MyDownload = (function () {
 				return _queue.length;
 			},
 			forEach: function(callback){
-				for(var x in _queue){
+				for(let x in _queue){
 					callback(_queue[x]);
 				}
 			},
 			offer: function(taskData, callback){
-				var batchName = MyUtils.genRandomString();
-                var copyTaskData = MyUtils.clone(taskData);
-				var copyTasks = copyTaskData.tasks;
-				for(var x in copyTasks){
-					var task = copyTasks[x];
+				let batchName = MyUtils.genRandomString();
+                let copyTaskData = MyUtils.clone(taskData);
+				let copyTasks = copyTaskData.tasks;
+				for(let x in copyTasks){
+					let task = copyTasks[x];
 					task.control == null ? task.control = {} : null;
 					task.control.batchName = batchName;
 					task.control.fileName = task.options.filename;
                     task.control.url = task.options.url;
 				}
-				var batch = {
+				let batch = {
 					batchName: batchName,
 					tasks: copyTasks,
 					showName: copyTaskData.showName,
@@ -37,8 +37,8 @@ var MyDownload = (function () {
 				_queue.push(batch);
 			},
 			takeTask: function(){
-                for(var x in _queue){
-                    var task = _queue[x].tasks.shift();
+                for(let x in _queue){
+                    let task = _queue[x].tasks.shift();
                     if(task != null){
                         return task;
                     }
@@ -46,23 +46,23 @@ var MyDownload = (function () {
 				return null;
 			},
 			clearWhenInterrupted: function(batchName){
-				var batch = null;
-				for(var x=0; x<_queue.length; x++){
-					if(_queue[x].batchName == batchName){
+				let batch = null;
+				for(let x=0; x<_queue.length; x++){
+					if(_queue[x].batchName === batchName){
 						batch = _queue[x];
 						_queue.splice(x, 1);
 						break;
 					}
 				}
 				if(batch != null){
-					for(var w in batch.downloadIds){
+					for(let w in batch.downloadIds){
 						_cancelDownload(batch.downloadIds[w], false);
 					}
 				}
 			},
 			saveId: function(batchName, id){
-				for(var x in _queue){
-					if(_queue[x].batchName == batchName){
+				for(let x in _queue){
+					if(_queue[x].batchName === batchName){
 						_queue[x].downloadIds.push(id);
 						return true;
 					}
@@ -70,13 +70,13 @@ var MyDownload = (function () {
                 return false;
 			},
 			complete: function(batchName, id){
-				for(var x=0; x<_queue.length; x++){
-					var batch = _queue[x];
-					if(batch.batchName == batchName){
+				for(let x=0; x<_queue.length; x++){
+					let batch = _queue[x];
+					if(batch.batchName === batchName){
 						batch.completedCnt ++;
 						if(batch.completedCnt >= batch.mustCompleteCnt){
 							_queue.splice(x, 1);
-							batch.callback == null ? null : batch.callback( batch.downloadIds );
+							batch.callback === null ? null : batch.callback( batch.downloadIds );
 						}
 						break;
 					}
@@ -86,9 +86,9 @@ var MyDownload = (function () {
 	})();
 	
 	
-	var _downloadingHolder = (function(){
-        var _map = new Map();
-		var _actionCount = 0;
+	let _downloadingHolder = (function(){
+        let _map = new Map();
+		let _actionCount = 0;
         return {
 			actionIncr: function(){
 				_actionCount ++;
@@ -122,7 +122,7 @@ var MyDownload = (function () {
 	
 	
 	function _metric(){
-		var downloadingTasks = [];
+		let downloadingTasks = [];
 		_downloadingHolder.forEach(function(id, control){
 			downloadingTasks.push({
 				id: id,
@@ -131,7 +131,7 @@ var MyDownload = (function () {
                 url: control.url
 			});
 		});
-		var downloadBatches = [];
+		let downloadBatches = [];
 		_downloadBatchHolder.forEach(function(batch){
 			downloadBatches.push({
 				showName: batch.showName,
@@ -142,7 +142,7 @@ var MyDownload = (function () {
 			});
 		});
 		
-		var retval = {
+		let retval = {
 			downloadingTasks: downloadingTasks,
 			downloadBatches: downloadBatches
 		};
@@ -156,17 +156,17 @@ var MyDownload = (function () {
         return true;
 	}
     
-    
+    //任务下载
 	function _downloadTask(){
 		if(!_downloadingHolder.actionValidate()){
 			return;
 		}
         
-		var task = _downloadBatchHolder.takeTask();
-		if(task == null){
+		let task = _downloadBatchHolder.takeTask();
+		if(task === null){
 			return ;
 		}
-        if(task.target == "chrome"){
+        if(task.target === "chrome"){
             MyChromeDownload.downloadTask(task);
         }else{
             MyM3u8Processer.downloadDownload(task);
@@ -175,7 +175,7 @@ var MyDownload = (function () {
 
 	function _cancelDownload(id, recurse){
         const callback = function(){
-            var control = _downloadingHolder.get(id);
+            let control = _downloadingHolder.get(id);
 			_downloadingHolder.delete(id);
             
             if(recurse){

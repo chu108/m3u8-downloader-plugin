@@ -16,10 +16,7 @@
 	<div>
 		<ul id="page-nav" class="nav nav-tabs">
 		  <li class="active"><a href="#" id="monitor-show" data-msg="monitor" >monitor</a></li>
-		  <li><a href="#" id="manual-show" data-msg="manual">manual</a></li>
 		  <li><a href="#" id="download-show" data-msg="download">download</a></li>
-		  <li><a href="#" id="settings-show" data-msg="settings">settings</a></li>
-		  <li><a href="#" id="running-show" data-msg="running">running</a></li>
 		</ul>
 		<div id="page-wrapper">
 			<div id="monitor-page" class="show">
@@ -40,30 +37,7 @@
 				<div id="monitor-content">
 				</div>
 			</div>
-			<div id="manual-page" class="hide">
-				<div>
-					<textarea id="manual-url" class="textarea-url" data-place="inputValidURL"></textarea>
-                    <textarea id="manual-headers" class="textarea-headers" data-place="inputValidHeaders"></textarea>
-					<input type="text" data-place="inputFileName" id="manual-name" />
-				</div>
-				<div>
-					<label data-title="manualM3u8Tip">
-					  <span class="not-select">m3u8</span>
-					  <input type="checkbox" id="manual-m3u8" />
-					</label>
-				</div>
-                <div>
-					<label class="not-select">method</label>
-					<select id="manual-method">
-					  <option value="GET">GET</option>
-					  <option value="POST">POST</option>
-					</select>
-				</div>
-				<div>
-					<span class="badge badge-b" id="manual-download" data-msg="download">download</span>
-					<span class="badge badge-b" id="manual-clean" data-msg="clean">clean</span>
-				</div>
-			</div>
+
 			<div id="download-page" class="hide">
 				<div>
 					<span class="badge badge-c active" id="download-batch-show" data-msg="downloadBatchShow">batch</span>
@@ -84,101 +58,7 @@
 					</div>
 				</div>
 			</div>
-			<div id="settings-page" class="hide">
-				<div>
-					<label class="not-select" data-msg="settingsEnvironment">environment</label>
-					<select id="settings-environment">
-					  <option value="nothing" data-msg="nothing">nothing</option>
-					  <option value="pc" data-msg="settingsEnvironmentPC">pc</option>
-					  <option value="mobile" data-msg="settingsEnvironmentMobile">mobile</option>
-					</select>
-				</div>
-				<div>
-					<label>
-					  <span class="not-select" data-msg="settingsShowTab">tab</span>
-					  <input type="checkbox" id="settings-tab" checked />
-					</label>
-				</div>
-				<div>
-					<label>
-					  <span class="not-select" data-msg="settingsShowDuration">duration</span>
-					  <input type="checkbox" id="settings-duration" checked />
-					</label>
-				</div>
-				<div>
-					<label class="not-select" data-msg="settingsMonitorMax">mmax</label>
-					<input type="number" step="1" min="1" max="200" value="1" id="settings-mntmax" />
-				</div>
-				<div>
-					<label class="not-select" data-msg="settingsDlingMax">dlmax</label>
-					<input type="number" step="1" min="1" max="10" value="1" id="settings-dlingmax" />
-				</div>
-				<div>
-					<label class="not-select" data-msg="settingsDlBatchMax">dlbmax</label>
-					<input type="number" step="1" min="1" max="50" value="1" id="settings-dlbtmax" />
-				</div>
-				<div>
-					<label class="not-select" data-msg="settingsPopupWidth">width</label>
-					<input type="number" step="20" min="462" max="3000" value="462" id="settings-popwidth" />
-				</div>
-				<div>
-					<label class="not-select" data-msg="settingsPopupHeight">height</label>
-					<input type="number" step="20" min="435" max="3000" value="435" id="settings-popheight" />
-				</div>
-				<div style="display: none;">
-					<label>
-					  <span class="not-select" data-msg="settingsPopupInTab">popupintab</span>
-					  <input type="checkbox" id="settings-popupintab" disabled />
-					</label>
-				</div>
-				<div>
-					<label>
-					  <span class="not-select" data-msg="settingsPromptWhenExist">pwe</span>
-					  <input type="checkbox" id="settings-pwe" />
-					</label>
-				</div>
-				<div>
-					<label>
-					  <span class="not-select" data-msg="settingsNewFolderAtRoot">nfar</span>
-					  <input type="checkbox" id="settings-nfar" />
-					</label>
-				</div>
-				<div>
-					<label>
-					  <span class="not-select" data-msg="settingsPlaySoundWhenComplete">pswc</span>
-					  <input type="checkbox" id="settings-pswc" />
-					</label>
-				</div>
-				<div>
-					<label>
-					  <span class="not-select" data-msg="settingsSplitDiscontinuity">sd</span>
-					  <input type="checkbox" id="settings-sd" />
-					</label>
-				</div>
-				<div>
-					<label>
-					  <span class="not-select" data-msg="settingsProcesserThreshold">pt</span>
-                      <input type="number" step="50" min="0" max="2000" value="500" id="settings-prothr" />
-					</label>
-				</div>
-				<div style="display: none;">
-					<label>
-					  <span class="not-select" data-msg="settingsMatchingRule">mr</span>
-					</label>
-                    <textarea id="settings-mr" class="textarea-mr"></textarea>
-				</div>
-				<div>
-					<span class="badge badge-b" id="settings-submit" data-msg="submit">submit</span>
-				</div>
-				
-			</div>
-			<div id="running-page" class="hide">
-				<div>
-					<span class="badge badge-b" id="running-reload" data-msg="reload">reload</span>
-				</div>
-				<div id="running-content">
-				</div>
-			</div>
+
 		</div>
 	</div>
   </body>

@@ -3,7 +3,7 @@ var MyM3u8Processer = (function () {
     const _cache = new Map();
     
     function _handleStateCallback(data){
-        if(! (data.state == "interrupted" || data.state == "complete")){
+        if(! (data.state === "interrupted" || data.state === "complete")){
             return ;
         }
         
@@ -11,7 +11,7 @@ var MyM3u8Processer = (function () {
         if (control == null) {
             return;
         }
-        if (data.state == "complete") {
+        if (data.state === "complete") {
             MyDownload.downloadingHolder.delete(data.id);
             MyDownload.downloadBatchHolder.complete(control.batchName, data.id);
         }
@@ -22,23 +22,23 @@ var MyM3u8Processer = (function () {
     function _downloadCallback(data){
         _handleStateCallback(data);
         
-        if(data.state != "complete"){
+        if(data.state !== "complete"){
             return;
         }
         const content = MyDownloader.getDownloadedContent(data.id);
-        if(content.length == 0){
+        if(content.length === 0){
             _cache.delete(data.attributes.contextId);
             return ;
         }
         const blob = new Blob(content);
         MyUtils.readAsArrayBuffer(blob).then((buf) => {
-            if(data.attributes.phase == "key"){
+            if(data.attributes.phase === "key"){
                 const context = _cache.get( data.attributes.contextId );
                 if(context == null){
                     return ;
                 }
                 context.parseResult.keyData.get(data.attributes.keyRef).content = _decodeKey(buf);
-            }else if(data.attributes.phase == "ts"){
+            }else if(data.attributes.phase === "ts"){
                 const context = _cache.get( data.attributes.contextId );
                 if(context == null){
                     return ;
@@ -73,7 +73,7 @@ var MyM3u8Processer = (function () {
     }
     
     function _decodeKey(buf){
-        if(buf.byteLength == 16){
+        if(buf.byteLength === 16){
             return new Uint8Array(buf);
         }
         throw "invalid key";
@@ -105,7 +105,7 @@ var MyM3u8Processer = (function () {
             }
                      
             let fileName = context.downloadDirectory + "/" + MyUtils.trimSuffix(context.mediaName) + (shouldSplit ? "-" + (++mainIndex) : "") + "."+context.parseResult.suffix;
-            if(MyChromeConfig.get("newFolderAtRoot") == "0" && ! shouldSplit){
+            if(MyChromeConfig.get("newFolderAtRoot") === "0" && ! shouldSplit){
                 fileName = MyUtils.trimSuffix(context.mediaName) + "."+context.parseResult.suffix;
             }
             

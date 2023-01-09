@@ -1,5 +1,5 @@
-var MyBootstrap = (function () {
-	if (document.readyState == "interactive") {
+let MyBootstrap = (function () {
+	if (document.readyState === "interactive") {
 		_start();
 	} else {
 		document.addEventListener("DOMContentLoaded", _start);
@@ -7,21 +7,21 @@ var MyBootstrap = (function () {
 
 	function _start() {
 		chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-			if(request.action == "downloadmedia"){
+			if(request.action === "downloadmedia"){
                 if(MyDownload.canDownload()){
                     _downloadMedia(request.data);
                 }
 				sendResponse({success: true});
-			}else if(request.action == "loadmonitoredmedia"){
+			}else if(request.action === "loadmonitoredmedia"){
 				sendResponse(MyChromeMediaMonitor.view());
-			}else if(request.action == "downloadmonitoredmedia"){
+			}else if(request.action === "downloadmonitoredmedia"){
                 if(!MyDownload.canDownload()){
                     sendResponse({success: true});
                     return ;
                 }
-                console.log("1.request:", request, "request.data:", request.data);
-				var mediaItem = request.data.destroy ? MyChromeMediaMonitor.take(request.data.identifier) : MyChromeMediaMonitor.element(request.data.identifier);
-                console.log("mediaItem:", mediaItem);
+                console.log("接收下载的参数:", request, "request.data:", request.data);
+				let mediaItem = request.data.destroy ? MyChromeMediaMonitor.take(request.data.identifier) : MyChromeMediaMonitor.element(request.data.identifier);
+                console.log("媒体item:", mediaItem);
                 if(request.data.urlMaster){
                     mediaItem.url = request.data.urlMaster;
                     mediaItem.parseResult = null;
@@ -30,31 +30,31 @@ var MyBootstrap = (function () {
                     mediaItem.mediaType = "video";
                 }
 				sendResponse({success: true});
-                let data = { mediaItem: mediaItem, mediaName: request.data.mediaName }
-                console.log("2._downloadMonitoredMedia.data:", data);
+                let data = { mediaItem: mediaItem, mediaName: request.data.mediaName, tabUrl: request.data.tabUrl }
+                console.log("传参到下载函数:", data);
 				_downloadMonitoredMedia(data);
-			}else if(request.action == "deletemonitoredmedia"){
+			}else if(request.action === "deletemonitoredmedia"){
 				MyChromeMediaMonitor.take(request.data.identifier);
 				sendResponse({success: true});
-			}else if(request.action == "metricdownload"){
+			}else if(request.action === "metricdownload"){
                 const metric = MyDownload.metric();
                 metric.downloadingTasksCustom = MyM3u8Processer.downloadMetric();
                 sendResponse(metric);
-			}else if(request.action == "canceldownload" || request.action == "download.cancel"){
+			}else if(request.action === "canceldownload" || request.action === "download.cancel"){
 				MyDownload.cancel(request.data.id);
 				sendResponse({success: true});
-			}else if(request.action == "resumedownload"){
+			}else if(request.action === "resumedownload"){
 				MyChromeDownload.resume(request.data.id);
 				sendResponse({success: true});
-			}else if(request.action == "getconfig"){
+			}else if(request.action === "getconfig"){
 				sendResponse(MyChromeConfig.view());
-			}else if(request.action == "updateconfig"){
+			}else if(request.action === "updateconfig"){
 				MyChromeConfig.update(request.data);
 				sendResponse({success: true});
-			}else if(request.action == "cleanmonitoredmedia"){
+			}else if(request.action === "cleanmonitoredmedia"){
 				MyChromeMediaMonitor.clear();
 				sendResponse({success: true});
-			}else if(request.action == "loadrunninginfo"){
+			}else if(request.action === "loadrunninginfo"){
                 sendResponse({
                     monitor: MyChromeMediaMonitor.info(),
                     videox: MyVideox.info(),
@@ -63,19 +63,19 @@ var MyBootstrap = (function () {
                     processer: MyM3u8Processer.info(),
                     matchingRule: MyUrlRuleMatcher.info()
                 });
-			}else if(request.action == "download.resume"){
+			}else if(request.action === "download.resume"){
                 MyM3u8Processer.downloadResume(request.data.id);
                 sendResponse({success: true});
-			}else if(request.action == "download.restart"){
+			}else if(request.action === "download.restart"){
                 MyM3u8Processer.downloadRestart(request.data.id);
                 sendResponse({success: true});
-			}else if(request.action == "download.pause"){
+			}else if(request.action === "download.pause"){
                 MyM3u8Processer.downloadPause(request.data.id);
                 sendResponse({success: true});
-			}else if(request.action == "contentscript.match"){
+			}else if(request.action === "contentscript.match"){
                 const matcherResult = MyUrlRuleMatcher.matchAndParse( request.data.url, "contentscript" );
                 sendResponse({ content: (matcherResult != null && matcherResult.targetContentscript != null) ? matcherResult.targetContentscript.func : null });
-			}else if(request.action == "contentscript.setm3u8"){
+			}else if(request.action === "contentscript.setm3u8"){
                 MyChromeMediaMonitor.add(request.data.url, "GET", request.data.result);
                 sendResponse({success: true});
 			}
@@ -96,7 +96,7 @@ var MyBootstrap = (function () {
 	
 	
 	function _downloadMedia(data){
-		var toSend = {
+		let toSend = {
 			reqConfig: {
 				url: data.url,
 				method: data.method,
@@ -104,50 +104,49 @@ var MyBootstrap = (function () {
 			}, 
 			mediaName: data.mediaName
 		};
-		if(data.mediaType == "m3u8"){
+		if(data.mediaType === "m3u8"){
 			_downloadM3u8(toSend);
 		}else{
 			_downloadOther(toSend);
 		}
 	}
 	
-	
+	//下载监控媒体
 	function _downloadMonitoredMedia(data){
-		if(data == null || data.mediaItem == null){
+		if(data === null || data.mediaItem === null){
 			return ;
 		}
-		var toSend = {
+		let toSend = {
 			reqConfig: {
 				url: data.mediaItem.url,
 				method: data.mediaItem.method,
                 headers: MyHttpHeadersHandler.filterForbidden(data.mediaItem.requestData ? data.mediaItem.requestData.requestHeaders : null)
 			}, 
-			mediaName: data.mediaName
+			mediaName: data.mediaName,
+            tabUrl: data.tabUrl
 		};
-        console.log("3.toSend:", toSend, "data.mediaItem:", data.mediaItem)
-		if(data.mediaItem.mediaType == "m3u8"){
+		if(data.mediaItem.mediaType === "m3u8"){
+            console.log("发送M3U8下载数据:", toSend, "data.mediaItem:", data.mediaItem.parseResult)
 			_downloadM3u8(toSend, data.mediaItem.parseResult);
 		}else{
 			_downloadOther(toSend);
 		}
 	}
-	
+	//下载M3U8
 	function _downloadM3u8(data, parseResult){
-        console.log("4._downloadM3u8.data:", data, "parseResult:", parseResult)
-		if(parseResult == null){
+		if(parseResult === null){
             MyVideox.getInfo("m3u8", data.reqConfig.url, data.reqConfig.method, data.reqConfig.url, data.reqConfig.headers, function(result){
-                if(result == null){
+                if(result === null){
 					return ;
 				}
                 _downloadM3u8CustomImpl(data, result);
             });
 		}else{
 			_downloadM3u8CustomImpl(data, parseResult);
-
 		}
 	}
 	
-    
+    //下载M3u8自定义Impl
     function _downloadM3u8CustomImpl(data, parseResult){
         if(parseResult.isMasterPlaylist){
             return ;
@@ -155,7 +154,7 @@ var MyBootstrap = (function () {
         console.log("5._downloadM3u8CustomImpl.data:", data, "parseResult:", parseResult)
         const uniqueKey = MyUtils.genRandomString();
 		const downloadDirectory = chrome.i18n.getMessage("appName") + "-" + uniqueKey;
-        console.log("6.uniqueKey:", uniqueKey, "downloadDirectory:", downloadDirectory)
+        console.log("下载目录:", downloadDirectory)
         let loadData = {
             id: uniqueKey,
             downloadDirectory: downloadDirectory,
@@ -176,14 +175,16 @@ var MyBootstrap = (function () {
                 completedCnt: 0
             },
             mediaName: data.mediaName,
-            mergeCallback: mergeCallback
+            mergeCallback: mergeCallback,
+            tabUrl: data.tabUrl
         }
-        console.log("7.loadData:", loadData)
+        console.log("保存下载上下文:", loadData)
         MyM3u8Processer.saveDownloadContext(loadData);
         stepDownloadKey();
-        
+
+        //步骤1下载秘钥key
         function stepDownloadKey(){
-            if(parseResult.keyData.size == 0){
+            if(parseResult.keyData.size === 0){
                 stepDownloadTs();
                 return ;
             }
@@ -199,13 +200,13 @@ var MyBootstrap = (function () {
                     custom: { phase: "key", contextId: uniqueKey, keyRef: keyRef }
                 });
             });
-            console.log("8.tasks:", tasks, "showName:", data.mediaName + ".multiplekey", "stepDownloadTs:", stepDownloadTs)
+            console.log("下载秘钥key:", tasks, "showName:", data.mediaName + ".multiplekey")
             MyDownload.download({
                 tasks: tasks, 
                 showName: data.mediaName + ".multiplekey"
             }, stepDownloadTs);
         }
-        
+        //步骤2下载ts
         function stepDownloadTs(){
             const tasks = [];
             for(let x in parseResult.playList){
@@ -219,15 +220,17 @@ var MyBootstrap = (function () {
                     custom: { phase: "ts", contextId: uniqueKey, index: x }
                 });
             }
-            
+            console.log("下载TS:", tasks, "showName:", data.mediaName + ".multiplets")
             MyDownload.download({
                 tasks: tasks, 
                 showName: data.mediaName + ".multiplets"
             }, null);
         }
-        
+        //合并回调
         function mergeCallback(){
-            if(MyChromeConfig.get("playSoundWhenComplete") == "1"){
+            console.log("合并.playSoundWhenComplete:", MyChromeConfig.get("playSoundWhenComplete"))
+            if(MyChromeConfig.get("playSoundWhenComplete") === "1"){
+                console.log("播放完成提示音")
                 MyVideox.play( chrome.extension.getURL("complete.mp3") );
             }
         }
@@ -236,10 +239,10 @@ var MyBootstrap = (function () {
 	
     
 	function _downloadOther(data){
-		var downloadDirectory = chrome.i18n.getMessage("appName") + "-" + MyUtils.genRandomString();
-		downloadDirectory = MyChromeConfig.get("newFolderAtRoot") == "0" ? "" : downloadDirectory + "/";
+		let downloadDirectory = chrome.i18n.getMessage("appName") + "-" + MyUtils.genRandomString();
+		downloadDirectory = MyChromeConfig.get("newFolderAtRoot") === "0" ? "" : downloadDirectory + "/";
 
-		var suffix = MyUtils.getSuffix(data.mediaName, false);
+		let suffix = MyUtils.getSuffix(data.mediaName, false);
 		if(suffix){
 			suffix = "";
 		}else{
@@ -259,7 +262,7 @@ var MyBootstrap = (function () {
             }], 
             showName: data.mediaName + suffix
         }, function(){
-			if(MyChromeConfig.get("playSoundWhenComplete") == "1"){
+			if(MyChromeConfig.get("playSoundWhenComplete") === "1"){
 				MyVideox.play( chrome.extension.getURL("complete.mp3") );
 			}
 		});

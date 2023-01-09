@@ -42,15 +42,16 @@ var MyChromeDownload = (function () {
 		}
 		
 		task.options.saveAs = false;
-		if(MyChromeConfig.get("promptWhenExist") == "1"){
+		if(MyChromeConfig.get("promptWhenExist") === "1"){
 			task.options.conflictAction = "prompt";
 		}
 		
 		try{
 			// sync calculate, incr firstly, decr if error
 			MyDownload.downloadingHolder.actionIncr();
-			
+			console.log("Chrome下载:", task.options)
 			chrome.downloads.download(task.options, function (id) {
+				console.log("Chrome下载回调:", id, "control:", task.control, "lastError:", chrome.runtime.lastError)
 				if(chrome.runtime.lastError){
 					MyDownload.downloadingHolder.actionDecr();
 					MyDownload.downloadBatchHolder.clearWhenInterrupted(task.control.batchName);
